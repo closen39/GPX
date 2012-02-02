@@ -32,7 +32,7 @@ public class GPXcalculatorTest extends TestCase{
 		GPXtrk trk1 = new GPXtrk("trk1", list2);
 		double eucDist = Math.sqrt(Math.pow((pt2.lat() - pt1.lat()), 2) + 
 							Math.pow((pt2.lon() - pt1.lon()), 2));						
-		assertEquals(eucDist, GPXcalculator.calculateDistanceTraveled(trk1), 0.0);
+		assertEquals(eucDist, GPXcalculator.calculateDistanceTraveled(trk1), 0.001);
 	}
 	/* Equivalence Class 2: null inputs
 	 * Tests a null input. Return value should be -1
@@ -52,14 +52,20 @@ public class GPXcalculatorTest extends TestCase{
 	}
 	
 	/* Equivalence Class 4: GPXtrk contains a null GPXtrkseg
-	 * Return value should be 0
+	 * Return value should be 0 (or distance of other segment, in this case, 0)
 	 */
 	@Test
 	public void testNullGPXtrkseg(){
-		ArrayList<GPXtrkseg> list1 = new ArrayList<GPXtrkseg>();
-		list1.add(null);
-		list1.add(new GPXtrkseg(null));
-		GPXtrk trk1 = new GPXtrk("trk1", list1);
+		GPXtrkpt pt1 = new GPXtrkpt(0.0, 0.0, new Date());
+		GPXtrkpt pt2 = new GPXtrkpt(0.0, 0.0, new Date());
+
+		ArrayList<GPXtrkpt> list1 = new ArrayList<GPXtrkpt>();
+		list1.add(pt1);
+		list1.add(pt2); //distance b/w these two points should be zero (for this segment)
+		ArrayList<GPXtrkseg> list2 = new ArrayList<GPXtrkseg>();
+		list2.add(null);
+		list2.add(new GPXtrkseg(list1));
+		GPXtrk trk1 = new GPXtrk("trk1", list2);
 		assertEquals(0.0, GPXcalculator.calculateDistanceTraveled(trk1), 0.0);
 	}
 	
@@ -174,7 +180,6 @@ public class GPXcalculatorTest extends TestCase{
 	public void testBoundaryCondition1(){
 		GPXtrkpt pt1 = new GPXtrkpt(0.0, 0.0, new Date());
 		GPXtrkpt pt2 = new GPXtrkpt(0.0, 0.0, new Date());
-
 		ArrayList<GPXtrkpt> list1 = new ArrayList<GPXtrkpt>();
 		list1.add(pt1);
 		list1.add(pt2);
@@ -183,5 +188,48 @@ public class GPXcalculatorTest extends TestCase{
 		list2.add(seg1);
 		GPXtrk trk1 = new GPXtrk("trk1", list2);				
 		assertEquals(0.0, GPXcalculator.calculateDistanceTraveled(trk1), 0.0);
+		
+		// test with points that don't start at 0
+		pt1 = new GPXtrkpt(60.0, 60.0, new Date());
+		pt2 = new GPXtrkpt(60.0, 60.0, new Date());
+		list1 = new ArrayList<GPXtrkpt>();
+		list1.add(pt1);
+		list1.add(pt2);
+		seg1 = new GPXtrkseg(list1);
+		list2 = new ArrayList<GPXtrkseg>();
+		list2.add(seg1);
+		trk1 = new GPXtrk("trk1", list2);				
+		assertEquals(0.0, GPXcalculator.calculateDistanceTraveled(trk1), 0.0);
 	}
+	
+	/* Equivalence Class 13: Boundary Condition2 - Lat at exactly +-90, long at exactly +-180
+	 * Return value should not be zero 
+	 */
+	@Test
+	public void testBoundaryCondition2(){ 
+		GPXtrkpt pt1 = new GPXtrkpt(90.0, 180.0, new Date());
+		GPXtrkpt pt2 = new GPXtrkpt(45.0, 45.0, new Date());
+
+		ArrayList<GPXtrkpt> list1 = new ArrayList<GPXtrkpt>();
+		list1.add(pt1);
+		list1.add(pt2);
+		GPXtrkseg seg1 = new GPXtrkseg(list1);
+		ArrayList<GPXtrkseg> list2 = new ArrayList<GPXtrkseg>();
+		list2.add(seg1);
+		GPXtrk trk1 = new GPXtrk("trk1", list2);				
+		assertTrue("Boundary Condition failed", GPXcalculator.calculateDistanceTraveled(trk1) > 0.0);
+		
+		pt1 = new GPXtrkpt(-90, -180.0, new Date());
+		pt2 = new GPXtrkpt(45.0, 45.0, new Date());
+		list1 = new ArrayList<GPXtrkpt>();
+		list1.add(pt1);
+		list1.add(pt2);
+		seg1 = new GPXtrkseg(list1);
+		list2 = new ArrayList<GPXtrkseg>();
+		list2.add(seg1);
+		trk1 = new GPXtrk("trk1", list2);
+		assertTrue("Boundary Condition failed", GPXcalculator.calculateDistanceTraveled(trk1) > 0.0);
+
+	}
+	
 }
